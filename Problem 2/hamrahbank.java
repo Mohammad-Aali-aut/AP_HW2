@@ -204,11 +204,11 @@ public class hamrahbank {
         System.out.println("Login successful.");
     }
 
-    private static void Show(String[] parts) {
-        if (parts.length!=2){
+    private static void Show(String[] splits) {
+        if (splits.length!=2){
             System.out.println("Error: invalid show command.");
         }
-        else if (!parts[1].toLowerCase().equals("balance")){
+        else if (!splits[1].toLowerCase().equals("balance")){
             System.out.println("Error: invalid show command.");
             
         }
