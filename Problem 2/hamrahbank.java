@@ -1,47 +1,29 @@
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Scanner;
 
 public class hamrahbank {
-    static ArrayList<String[]> users = new ArrayList<>();
-    static String[] loginUser = null;
-    static long nextCardNumber = 6037000000000000L;
-    
-    private static String[] findUsername(String username){
-        int flag = 0;
-        String[] u = new String[7];
-        for (int i=0; i<users.size(); i++){
-            if (users.get(i)[0].equals(username)){
-                flag = 1;
-                u = users.get(i);
-                break;
-            
-            }
-        }
-        if (flag == 0){
-            return null;
-        }
-        else{
-            return u;
+    static class User{
+        String username;
+        String password;
+        String fullName;
+        String cardNumber;
+        String phoneNumber;
+        String email;
+        String balance;
+        public User(String username, String password, String fullName, String cardNumber, String phoneNumber, String email){
+            this.username = username;
+            this.password = password;
+            this.fullName = fullName;
+            this.cardNumber = cardNumber;
+            this.phoneNumber = phoneNumber;
+            this.email = email;
+            this.balance = "0";
         }
     }
-    private static String[] findCardnum(String cardNumber) {
-        int flag = 0;
-        String[] u = new String[7];
-        for (int i=0; i<users.size(); i++){
-            if (users.get(i)[3].equals(cardNumber)){
-                flag = 1;
-                u = users.get(i);
-                break;
-            
-            }
-        }
-        if (flag == 0){
-            return null;
-        }
-        else{
-            return u;
-        }
-    }
+    static HashMap<String, User> usersByUsername = new HashMap<>();
+    static HashMap<String, User> usersByCardNumber = new HashMap<>();
+    static User loginUser = null;
+    static long nextCardNumber = 6037000000000000L;    
     private static boolean CheckPhone(String phoneNumber){
         if (phoneNumber.length()!=11){
             return false;
@@ -145,7 +127,7 @@ public class hamrahbank {
         String email = splits[6];
         String fullName = firstName + " " + lastName;
 
-        if (findUsername(username)!=null){
+        if (usersByUsername.containsKey(username)){
             System.out.println("Error: username already exists.");
             return;
         }
@@ -165,22 +147,21 @@ public class hamrahbank {
             return;
         }
 
-        String cardNumber = String.valueOf(nextCardNumber);
-        nextCardNumber += 1;
-        String balance = "0";
-        String[] user = new String[7];
-        user[0] = username;
-        user[1] = password;
-        user[2] = fullName;
-        user[3] = cardNumber;
-        user[4] = phoneNumber;
-        user[5] = email;
-        user[6] = balance;
-        users.add(user);
-        System.out.println("Registered successfully.");
-        System.out.println("Assigned card number: " + cardNumber);
-    }
+        while (true){
+            String cardNumber = String.valueOf(nextCardNumber);
+            nextCardNumber += 1;
+            if (!usersByCardNumber.containsKey(cardNumber)){
+                User user = new User(username, password, fullName, cardNumber, phoneNumber, email);
+                usersByUsername.put(username, user);
+                usersByCardNumber.put(cardNumber, user);
+                System.out.println("Registered successfully.");
+                System.out.println("Assigned card number: " + cardNumber);
+                break;
+            }
+        
+        }
 
+    }
     private static void Login(String[] splits){
         String username = splits[1];
         String password = splits[2];
@@ -189,13 +170,14 @@ public class hamrahbank {
             return;
         }
 
-        String[] user = findUsername(username);
+        User user = usersByUsername.get(username);
+
         if (user==null){
             System.out.println("Error: invalid username or password.");
             return;
         }
 
-        if (!user[1].equals(password)){
+        if (!user.password.equals(password)){
             System.out.println("Error: invalid username or password.");
             return;
         }
@@ -204,11 +186,11 @@ public class hamrahbank {
         System.out.println("Login successful.");
     }
 
-    private static void Show(String[] parts) {
-        if (parts.length!=2){
+    private static void Show(String[] splits) {
+        if (splits.length!=2){
             System.out.println("Error: invalid show command.");
         }
-        else if (!parts[1].toLowerCase().equals("balance")){
+        else if (!splits[1].toLowerCase().equals("balance")){
             System.out.println("Error: invalid show command.");
             
         }
@@ -217,7 +199,7 @@ public class hamrahbank {
                 System.out.println("Error: You should login first.");
             }
             else{
-                System.out.println("Current balance: " + loginUser[6]);
+                System.out.println("Current balance: " + loginUser.balance);
 
             }
 
@@ -242,9 +224,9 @@ public class hamrahbank {
             
         }
         else{
-            double newBalance = Double.parseDouble(loginUser[6]) + Double.parseDouble(splits[1]);
-            loginUser[6] = String.valueOf(newBalance);
-            System.out.println("Deposit successful. Current balance: " + loginUser[6]);
+            double newBalance = Double.parseDouble(loginUser.balance) + Double.parseDouble(splits[1]);
+            loginUser.balance = String.valueOf(newBalance);
+            System.out.println("Deposit successful. Current balance: " + loginUser.balance);
         }
     }
 
@@ -263,20 +245,20 @@ public class hamrahbank {
         }
 
         else{
-            if (Double.parseDouble(splits[1])>Double.parseDouble(loginUser[6])){
+            if (Double.parseDouble(splits[1])>Double.parseDouble(loginUser.balance)){
                 System.out.println("Error: insufficient balance.");
             }
 
             else{
-                double newBalance = Double.parseDouble(loginUser[6]) - Double.parseDouble(splits[1]);
-                loginUser[6] = String.valueOf(newBalance);
-                System.out.println("Withdrawal successful. Current balance: " + loginUser[6]);
+                double newBalance = Double.parseDouble(loginUser.balance) - Double.parseDouble(splits[1]);
+                loginUser.balance = String.valueOf(newBalance);
+                System.out.println("Withdrawal successful. Current balance: " + loginUser.balance);
             }
         }
     }
 
     private static void Transfer(String[] splits) {
-        String[] User_dest = findCardnum(splits[1]);
+        User User_dest = usersByCardNumber.get(splits[1]);;
         if (loginUser==null){
             System.out.println("Error: You shoulld login first.");
         }
@@ -292,16 +274,16 @@ public class hamrahbank {
         else if (User_dest==null){
             System.out.println("Error: invalid card number.");
         }
-        else if (Double.parseDouble(splits[2])>Double.parseDouble(loginUser[6])){
+        else if (Double.parseDouble(splits[2])>Double.parseDouble(loginUser.balance)){
             System.out.println("Error: insufficient balance.");
             
         }
 
         else{
-            double newBalance_send = Double.parseDouble(loginUser[6]) - Double.parseDouble(splits[2]);
-            loginUser[6] = String.valueOf(newBalance_send);
-            double newBalance_dest = Double.parseDouble(User_dest[6]) + Double.parseDouble(splits[2]);
-            User_dest[6] = String.valueOf(newBalance_dest);
+            double newBalance_send = Double.parseDouble(loginUser.balance) - Double.parseDouble(splits[2]);
+            loginUser.balance = String.valueOf(newBalance_send);
+            double newBalance_dest = Double.parseDouble(User_dest.balance) + Double.parseDouble(splits[2]);
+            User_dest.balance = String.valueOf(newBalance_dest);
             System.out.println("Transferred successfully.");
         }
     }
